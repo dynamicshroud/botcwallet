@@ -99,7 +99,7 @@ class NewTransaction:
     def send(self):
         if int(self.sstr.get()) == 0:
 	        self.text.config(text = "You cannot send nothing")
-	    try:
+        try:
             if gui.wallet.sendTransaction(self.estr.get(), int(self.sstr.get())) == False:
                 self.text.config(text = "Not enough coins!")
             else:
