@@ -1,14 +1,13 @@
 # BOTC Wallet
 # by vortex
 
-import uuid, sys, glob, os, qrcode, tempfile
+import uuid, sys, glob, os, qrcode, tempfile, re
 import configparser as c
 from pathlib import Path
 from wallet import *
 
 import tkinter as tk
 import tkinter.messagebox as tmb
-from tkinter.filedialog import askopenfilename
 from PIL import ImageTk, Image
 
 if sys.platform == "win32" or sys.platform == "win64":
@@ -16,15 +15,16 @@ if sys.platform == "win32" or sys.platform == "win64":
 else:
     slash = "/"
 
+sampleurl = "PLEASE SET YOUR HOST"
 class GUI:
     def __init__(self):
-            self.wallet = Wallet("http://please.set.the.host:1337") # sample url
+            self.wallet = Wallet(sampleurl) # sample url
             self.private_file = str(Path.home()) + "/" + str(uuid.uuid4()) + ".botcpkey"
             self.exportKey()
 
     def importKey(self, file):
         with open(file, "rb") as f:
-            self.wallet = CustomWallet(f.read(), "http://please.set.the.host:1337") # sample url
+            self.wallet = CustomWallet(f.read(), sampleurl) # sample url
     
     def exportKey(self):
         # look for .botcpkey file. if exists, then skip, else dump private key
@@ -67,6 +67,9 @@ class NewHost:
         self.button.pack()
 
     def changeHost(self):
+        if self.estr.get() == "":
+            self.text.config(text = "Not a valid host!")
+
         gui.wallet.url = self.estr.get()
         current_host.config(text = "Current host: {}".format(gui.wallet.url))
         print(gui.wallet.url)
@@ -97,8 +100,15 @@ class NewTransaction:
         self.button.pack()
 
     def send(self):
+        try:
+            if gui.wallet.url == sampleurl:
+                self.text.config(text = "Change your host!")
+        except requests.exceptions.InvalidURL:
+            print("!!!CHANGE YOUR HOST!!!")
+
         if int(self.sstr.get()) == 0:
-	        self.text.config(text = "You cannot send nothing")
+            self.text.config(text = "You cannot send nothing")
+
         try:
             if gui.wallet.sendTransaction(self.estr.get(), int(self.sstr.get())) == False:
                 self.text.config(text = "Not enough coins!")
@@ -118,19 +128,42 @@ class RecieveCoins:
         qrcode.make(gui.wallet.identity).save(templocation)
 
         self.image = ImageTk.PhotoImage(Image.open(templocation))
-        self.qr_label = tk.Label(w, image=self.image)
         self.text = tk.Label(w, text = "Recieve coins with your address\n")
         self.button = tk.Button(w, text = "Retrieve coins", command = self.recieve)
 
+        self.qr_button = tk.Button(w, text = "Show QR Code", command = self.showqr)
+        self.addr_button = tk.Button(w, text = "Show Address", command = self.showaddress)
+
         self.text.pack()
-        self.qr_label.pack()
+        self.qr_button.pack()
+        self.addr_button.pack()
         self.button.pack()
 
+    def showqr(self):
+        w = tk.Toplevel(root)
+        qr = tk.Label(w, image = self.image)
+        qr.pack()
+    
+    def showaddress(self):
+        w = tk.Toplevel(root)
+        l = tk.Label(w, text = "Copy me!")
+        addr = tk.Text(w)
+        l.pack()
+        addr.insert(1.0, gui.wallet.identity)
+        addr.pack()
+
     def recieve(self):
+        try:
+            if gui.wallet.url == sampleurl:
+                self.text.config(text = "Change your host!")
+        except requests.exceptions.InvalidURL:
+            print("!!!CHANGE YOUR HOST!!!")
+
         try:
             gui.wallet.recieve()
         except requests.exceptions.ConnectionError:
             self.text.config(text = "Host not working!")
+        
 
 def recieveCoins():
     rc = RecieveCoins(root)
