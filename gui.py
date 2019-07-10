@@ -1,7 +1,7 @@
 # BOTC Wallet
 # by vortex
 
-import uuid, sys, glob, os, qrcode, tempfile, re
+import uuid, sys, glob, os, qrcode, tempfile
 import configparser as c
 from pathlib import Path
 from wallet import *
