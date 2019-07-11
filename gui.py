@@ -1,7 +1,7 @@
 # BOTC Wallet
 # by vortex
 
-import uuid, sys, glob, os, qrcode, tempfile, re
+import uuid, sys, glob, os, qrcode, tempfile
 import configparser as c
 from pathlib import Path
 from wallet import *
@@ -16,11 +16,27 @@ else:
     slash = "/"
 
 sampleurl = "PLEASE SET YOUR HOST"
+
 class GUI:
     def __init__(self):
-            self.wallet = Wallet(sampleurl) # sample url
-            self.private_file = str(Path.home()) + "/" + str(uuid.uuid4()) + ".botcpkey"
-            self.exportKey()
+        self.wallet = Wallet(sampleurl) # sample url
+        self.private_file = str(Path.home()) + slash + str(uuid.uuid4()) + ".botcpkey"
+        self.config_file = str(Path.home()) + slash + str(uuid.uuid4()) + ".botcconfig"
+        self.exportKey()
+        self.getURL()
+
+    def getURL(self):
+        config = c.ConfigParser()
+        if glob.glob(str(Path.home()) + slash + "*.botcconfig") == []:
+            config['uri'] = {}
+            config['uri']['URL'] = sampleurl
+                
+            with open(self.config_file, "w") as f:
+                config.write(f)
+        else:
+            f = glob.glob(str(Path.home()) + slash + "*.botcconfig")[0]
+            if config.read(f) == [f]:
+                self.wallet.url = config['uri']['URL']
 
     def importKey(self, file):
         with open(file, "rb") as f:
@@ -39,10 +55,12 @@ class GUI:
 gui = GUI()
 
 def newWallet():
-    ask = tmb.askokcancel("Are you sure?", "This will remove your private key from disk to make a new one. You will lose your coins. Do you wish to continue?")
+    ask = tmb.askokcancel("Are you sure?", "This will remove your private key and configuration file from disk to make a new one. You will lose your coins and your settings. Do you wish to continue?")
     if ask == True:
         if glob.glob(str(Path.home()) + slash + "*.botcpkey") != []:
             os.remove(glob.glob(str(Path.home()) + slash + "*.botcpkey")[0])
+            os.remove(glob.glob(str(Path.home()) + slash + "*.botcconfig")[0])
+            
             gui = GUI()
 
 ### GRAPHICS ###
@@ -69,6 +87,15 @@ class NewHost:
     def changeHost(self):
         if self.estr.get() == "":
             self.text.config(text = "Not a valid host!")
+
+        config = c.ConfigParser()
+
+        f = glob.glob(str(Path.home()) + slash + "*.botcconfig")[0]
+        config['uri'] = {}
+        config['uri']['URL'] = self.estr.get()
+
+        with open(f, "w") as fp:
+            config.write(fp)
 
         gui.wallet.url = self.estr.get()
         current_host.config(text = "Current host: {}".format(gui.wallet.url))
@@ -114,6 +141,7 @@ class NewTransaction:
                 self.text.config(text = "Not enough coins!")
             else:
                 self.text.config(text = "Transaction complete!")
+                balance.config(text = "Balance: {} coins".format(gui.wallet.coins))
         except requests.exceptions.ConnectionError:
             self.text.config(text = "Host not working!")
 
@@ -161,6 +189,7 @@ class RecieveCoins:
 
         try:
             gui.wallet.recieve()
+            balance.config(text = "Balance: {} coins".format(gui.wallet.coins))
         except requests.exceptions.ConnectionError:
             self.text.config(text = "Host not working!")
         
@@ -171,7 +200,7 @@ def recieveCoins():
 if __name__ == '__main__':
 
     fmenu = tk.Menu(menu, tearoff=0)
-    fmenu.add_command(label="New Wallet", command=newWallet)
+    fmenu.add_command(label="Remake wallet", command=newWallet)
     fmenu.add_command(label="Use other host", command=newHost)
     fmenu.add_separator()
     fmenu.add_command(label="Exit", command=root.quit)

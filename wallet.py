@@ -52,6 +52,7 @@ class Wallet:
 		signature = binascii.hexlify(signer.sign(SHA.new(txndata)))
 
 		self.sendRequest("newTxn", txndata=binascii.hexlify(txndata).decode('utf-8'), signature=signature)
+		
 	def recieve(self):
 		req = self.sendRequest("announce")
 
@@ -95,7 +96,25 @@ class CustomWallet:
 
 	def recieve(self):
 		req = self.sendRequest("announce")
+		c = 0 # coins recieved
+		cs = 0 # coins sent
 
 		for i in req["blockchain"]:
 			if i["txndata"]["recipient"] == self.identity:
-				self.coins += i["txndata"]["amount"]
+				c += i["txndata"]["amount"]
+
+			if i["txndata"]["sender"] == self.identity:
+				cs += i["txndata"]["amount"]
+
+		if self.coins == c:
+			self.coins += 0
+
+		if self.coins < c:
+			if (c - cs) != self.coins:
+				self.coins += c
+			else:
+				self.coins += 0
+
+		if self.coins > c:
+			self.coins += 0
+		
